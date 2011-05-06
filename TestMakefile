@@ -1,0 +1,14 @@
+OCAMLMAKEFILE = OCamlMakefile
+
+SOURCES = test.ml
+RESULT  = test
+THREADS = yes
+PACKS = rrd
+
+OCAMLFLAGS=-g -w Aez -warn-error Aez
+OCAMLLDFLAGS=-g
+CFLAGS = -Wall -Werror -g -ggdb -O2 $(RPM_OPT_FLAGS)
+
+all: byte-code native-code
+
+include $(OCAMLMAKEFILE)

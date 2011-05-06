@@ -1,0 +1,4 @@
+version = "0.1"
+description = "RRD bindings"
+archive(byte) = "rrd.cma"
+archive(native) = "rrd.cmxa"

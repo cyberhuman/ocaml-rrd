@@ -1,0 +1,3 @@
+OCaml bindings to librrd, tested with rrdtool 1.3.8
+
+Work in progress!
