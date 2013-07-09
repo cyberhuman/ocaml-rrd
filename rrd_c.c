@@ -314,3 +314,57 @@ err0:
 
     CAMLreturn(ret_value);
 }
+
+CAMLprim void caml_rrd_graph(value args_v)
+{
+    CAMLparam1(args_v);
+    CAMLlocal1(ret_value);
+
+    int i, ret = 0, err = 0, argc = Wosize_val(args_v);
+    char **args;
+    rrd_info_t *grinfo;
+
+    args = malloc(sizeof(char *) * argc);
+    if (!args)
+    {
+        err = ENOMEM;
+        goto err0;
+    }
+
+    for (i = 0; i < argc; i++)
+        args[i] = NULL;
+
+    for (i = 0; i < argc; i++)
+    {
+        args[i] = copy_caml_string(Field(args_v, i));
+        if (!args[i])
+        {
+            err = ENOMEM;
+            goto err1;
+        }
+    }
+
+    caml_enter_blocking_section();
+    rrd_clear_error();
+    grinfo = rrd_graph_v(argc, args);
+    if (grinfo == NULL)
+      ret = -1;
+    else
+      rrd_info_free(grinfo);
+    caml_leave_blocking_section();
+
+err1:
+    for (i = 0; i < argc; i++)
+        if (args[i])
+            free(args[i]);
+    free(args);
+err0:
+
+    if (err)
+        unix_error(err, "caml_rrd_graph", Nothing);
+
+    if (ret)
+        caml_failwith(rrd_get_error());
+
+    CAMLreturn0;
+}
