@@ -235,3 +235,82 @@ err0:
         
     CAMLreturn(results);
 }
+
+CAMLprim value caml_rrd_fetch_ex_r(value filename_v, value cf_v, value start_v,
+    value end_v, value step_v)
+{
+    CAMLparam5(filename_v, cf_v, start_v, end_v, step_v);
+    CAMLlocal4(ret_value, results, result, tmp);
+
+    int ret = 0, err = 0;
+    char *filename, *cf ;
+    time_t start = Int_val(start_v);
+    time_t end = Int_val(end_v);
+
+    unsigned long i, j, ds_cnt, data_cnt;
+    unsigned long step = Int_val(step_v);
+    char **ds_names;
+    rrd_value_t *data;
+
+    filename = copy_caml_string(filename_v);
+    if (!filename)
+    {
+        err = ENOMEM;
+        goto err0;
+    }
+
+    cf = copy_caml_string(cf_v);
+    if (!filename)
+    {
+        err = ENOMEM;
+        goto err1;
+    }
+
+    result = Nothing;
+
+    caml_enter_blocking_section();
+    rrd_clear_error();
+    ret = rrd_fetch_r(filename, cf, &start, &end,  &step,
+        &ds_cnt, &ds_names, &data);
+    caml_leave_blocking_section();
+
+      free(cf);
+err1: free(filename);
+err0:
+
+    if (ret)
+        unix_error(ret, "caml_rrd_fetch_r", Nothing);
+
+    if (err)
+        caml_failwith(rrd_get_error());
+
+    ret_value = caml_alloc(4, 0);
+
+    results = caml_alloc(ds_cnt, 0);
+    data_cnt = (end - start) / step;
+
+    for (i = 0; i < ds_cnt; i++)
+    {
+        tmp = caml_alloc(data_cnt, Double_array_tag);
+        for (j = 0; j < data_cnt; j++)
+        {
+            Store_double_field(tmp, j, *(data + (i * data_cnt) + j));
+        }
+
+        result = caml_alloc(2, 0);
+        Store_field(result, 0, caml_copy_string(ds_names[i]));
+        Store_field(result, 1, tmp);
+
+        Store_field(results, i, result);
+    }
+
+    free(ds_names);
+    free(data);
+
+    Store_field(ret_value, 0, results);
+    Store_field(ret_value, 1, Val_int(start));
+    Store_field(ret_value, 2, Val_int(end));
+    Store_field(ret_value, 3, Val_int(step));
+
+    CAMLreturn(ret_value);
+}
